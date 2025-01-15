@@ -1,0 +1,350 @@
+using System;
+using System.Collections.Generic;
+using System.Text.Json;
+using System.IO;
+
+public interface IPerson
+{
+    string Ad { get; set; }
+    int Yaş { get; set; }
+    string KimlikNo { get; set; }
+    void BilgiGöster();
+}
+
+public abstract class Personel : IPerson
+{
+    public string Ad { get; set; }
+    public int Yaş { get; set; }
+    public string KimlikNo { get; set; }
+
+    public Personel(string ad, int yaş, string kimlikNo)
+    {
+        Ad = ad;
+        Yaş = yaş;
+        KimlikNo = kimlikNo;
+    }
+
+    public abstract void BilgiGöster();
+}
+
+public class Öğrenci : Personel
+{
+    public string ÖğrenciNo { get; set; }
+
+    public Öğrenci(string ad, int yaş, string kimlikNo, string öğrenciNo)
+        : base(ad, yaş, kimlikNo)
+    {
+        ÖğrenciNo = öğrenciNo;
+    }
+
+    public override void BilgiGöster()
+    {
+        Console.WriteLine($"Öğrenci Adı: {Ad}, Yaş: {Yaş}, Kimlik No: {KimlikNo}, Öğrenci No: {ÖğrenciNo}");
+    }
+}
+
+public class ÖğretimGörevlisi : Personel
+{
+    public string AkademikNo { get; set; }
+
+    public ÖğretimGörevlisi(string ad, int yaş, string kimlikNo, string akademikNo)
+        : base(ad, yaş, kimlikNo)
+    {
+        AkademikNo = akademikNo;
+    }
+
+    public override void BilgiGöster()
+    {
+        Console.WriteLine($"Öğretim Görevlisi Adı: {Ad}, Yaş: {Yaş}, Kimlik No: {KimlikNo}, Akademik No: {AkademikNo}");
+    }
+}
+
+public class Ders
+{
+    public string Ad { get; set; }
+    public int Kredi { get; set; }
+    public ÖğretimGörevlisi ÖğretimGörevlisi { get; set; }
+    public List<Öğrenci> KayıtlıÖğrenciler { get; set; }
+
+    public Ders(string ad, int kredi, ÖğretimGörevlisi öğretimGörevlisi)
+    {
+        Ad = ad;
+        Kredi = kredi;
+        ÖğretimGörevlisi = öğretimGörevlisi;
+        KayıtlıÖğrenciler = new List<Öğrenci>();
+    }
+
+    public void ÖğrenciKaydet(Öğrenci öğrenci)
+    {
+        KayıtlıÖğrenciler.Add(öğrenci);
+    }
+
+    public void DersBilgisiGöster()
+    {
+        Console.WriteLine($"Ders Adı: {Ad}, Kredi: {Kredi}, Öğretim Görevlisi: {ÖğretimGörevlisi.Ad}");
+        Console.WriteLine("Kayıtlı Öğrenciler:");
+        foreach (var öğrenci in KayıtlıÖğrenciler)
+        {
+            Console.WriteLine($"- {öğrenci.Ad}");
+        }
+    }
+}
+
+public static class VeriYönetimi
+{
+    private static readonly string ÖğrencilerDosyası = "ogrenciler.json";
+    private static readonly string ÖğretimGörevlileriDosyası = "ogretimgorevlileri.json";
+    private static readonly string DerslerDosyası = "dersler.json";
+
+    public static void ÖğrenciKaydet(List<Öğrenci> öğrenciler)
+    {
+        string jsonString = JsonSerializer.Serialize(öğrenciler, new JsonSerializerOptions { WriteIndented = true });
+        File.WriteAllText(ÖğrencilerDosyası, jsonString);
+    }
+
+    public static void ÖğretimGörevlisiKaydet(List<ÖğretimGörevlisi> öğretimGörevlileri)
+    {
+        string jsonString = JsonSerializer.Serialize(öğretimGörevlileri, new JsonSerializerOptions { WriteIndented = true });
+        File.WriteAllText(ÖğretimGörevlileriDosyası, jsonString);
+    }
+
+    public static void DersKaydet(List<Ders> dersler)
+    {
+        string jsonString = JsonSerializer.Serialize(dersler, new JsonSerializerOptions { WriteIndented = true });
+        File.WriteAllText(DerslerDosyası, jsonString);
+    }
+
+    public static List<Öğrenci> ÖğrencileriOku()
+    {
+        if (File.Exists(ÖğrencilerDosyası))
+        {
+            string jsonString = File.ReadAllText(ÖğrencilerDosyası);
+            return JsonSerializer.Deserialize<List<Öğrenci>>(jsonString) ?? new List<Öğrenci>();
+        }
+        return new List<Öğrenci>();
+    }
+
+    public static List<ÖğretimGörevlisi> ÖğretimGörevlileriniOku()
+    {
+        if (File.Exists(ÖğretimGörevlileriDosyası))
+        {
+            string jsonString = File.ReadAllText(ÖğretimGörevlileriDosyası);
+            return JsonSerializer.Deserialize<List<ÖğretimGörevlisi>>(jsonString) ?? new List<ÖğretimGörevlisi>();
+        }
+        return new List<ÖğretimGörevlisi>();
+    }
+
+    public static List<Ders> DersleriOku()
+    {
+        if (File.Exists(DerslerDosyası))
+        {
+            string jsonString = File.ReadAllText(DerslerDosyası);
+            return JsonSerializer.Deserialize<List<Ders>>(jsonString) ?? new List<Ders>();
+        }
+        return new List<Ders>();
+    }
+}
+
+public class Program
+{
+    private static List<Öğrenci> öğrenciler = new List<Öğrenci>();
+    private static List<ÖğretimGörevlisi> öğretimGörevlileri = new List<ÖğretimGörevlisi>();
+    private static List<Ders> dersler = new List<Ders>();
+
+    public static void Main(string[] args)
+    {
+        VerileriYükle();
+
+        while (true)
+        {
+            MenuGöster();
+            string seçim = Console.ReadLine();
+
+            switch (seçim)
+            {
+                case "1":
+                    ÖğrenciEkle();
+                    break;
+                case "2":
+                    ÖğretimGörevlisiEkle();
+                    break;
+                case "3":
+                    DersEkle();
+                    break;
+                case "4":
+                    DersBilgisiGöster();
+                    break;
+                case "5":
+                    ÖğrencileriListele();
+                    break;
+                case "6":
+                    ÖğretimGörevlileriniListele();
+                    break;
+                case "7":
+                    DersleriListele();
+                    break;
+                case "8":
+                    DerseÖğrenciKaydet();
+                    break;
+                case "9":
+                    return;
+                default:
+                    Console.WriteLine("Geçersiz seçim!");
+                    break;
+            }
+        }
+    }
+
+    private static void MenuGöster()
+    {
+        Console.WriteLine("\n--- ÖĞRENCİ VE DERS YÖNETİM SİSTEMİ ---");
+        Console.WriteLine("1. Öğrenci Ekle");
+        Console.WriteLine("2. Öğretim Görevlisi Ekle");
+        Console.WriteLine("3. Ders Ekle");
+        Console.WriteLine("4. Ders Bilgilerini Göster");
+        Console.WriteLine("5. Öğrencileri Listele");
+        Console.WriteLine("6. Öğretim Görevlilerini Listele");
+        Console.WriteLine("7. Dersleri Listele");
+        Console.WriteLine("8. Derse Öğrenci Kaydet");
+        Console.WriteLine("9. Çıkış");
+        Console.Write("Seçiminiz: ");
+    }
+
+    private static void VerileriYükle()
+    {
+        öğrenciler = VeriYönetimi.ÖğrencileriOku();
+        öğretimGörevlileri = VeriYönetimi.ÖğretimGörevlileriniOku();
+        dersler = VeriYönetimi.DersleriOku();
+    }
+
+    private static void ÖğrenciEkle()
+    {
+        Console.Write("Öğrenci Adı: ");
+        string ad = Console.ReadLine();
+        Console.Write("Yaş: ");
+        int yaş;
+        while (!int.TryParse(Console.ReadLine(), out yaş))
+        {
+            Console.WriteLine("Geçersiz yaş, lütfen tekrar girin.");
+        }
+        Console.Write("Kimlik No: ");
+        string kimlikNo = Console.ReadLine();
+        Console.Write("Öğrenci No: ");
+        string öğrenciNo = Console.ReadLine();
+
+        var öğrenci = new Öğrenci(ad, yaş, kimlikNo, öğrenciNo);
+        öğrenciler.Add(öğrenci);
+        VeriYönetimi.ÖğrenciKaydet(öğrenciler);
+        Console.WriteLine("Öğrenci başarıyla eklendi.");
+    }
+
+    private static void ÖğretimGörevlisiEkle()
+    {
+        Console.Write("Öğretim Görevlisi Adı: ");
+        string ad = Console.ReadLine();
+        Console.Write("Yaş: ");
+        int yaş;
+        while (!int.TryParse(Console.ReadLine(), out yaş))
+        {
+            Console.WriteLine("Geçersiz yaş, lütfen tekrar girin.");
+        }
+        Console.Write("Kimlik No: ");
+        string kimlikNo = Console.ReadLine();
+        Console.Write("Akademik No: ");
+        string akademikNo = Console.ReadLine();
+
+        var öğretimGörevlisi = new ÖğretimGörevlisi(ad, yaş, kimlikNo, akademikNo);
+        öğretimGörevlileri.Add(öğretimGörevlisi);
+        VeriYönetimi.ÖğretimGörevlisiKaydet(öğretimGörevlileri);
+        Console.WriteLine("Öğretim görevlisi başarıyla eklendi.");
+    }
+
+    private static void DersEkle()
+    {
+        Console.Write("Ders Adı: ");
+        string dersAdı = Console.ReadLine();
+        Console.Write("Kredi: ");
+        int kredi;
+        while (!int.TryParse(Console.ReadLine(), out kredi))
+        {
+            Console.WriteLine("Geçersiz kredi, lütfen tekrar girin.");
+        }
+        Console.Write("Öğretim Görevlisi Adı: ");
+        string ogretimAdı = Console.ReadLine();
+        var öğretimGörevlisi = öğretimGörevlileri.Find(o => o.Ad == ogretimAdı);
+        if (öğretimGörevlisi != null)
+        {
+            var ders = new Ders(dersAdı, kredi, öğretimGörevlisi);
+            dersler.Add(ders);
+            VeriYönetimi.DersKaydet(dersler);
+            Console.WriteLine("Ders başarıyla eklendi.");
+        }
+        else
+        {
+            Console.WriteLine("Öğretim Görevlisi bulunamadı.");
+        }
+    }
+
+    private static void DersBilgisiGöster()
+    {
+        Console.WriteLine("\n--- DERS BİLGİLERİ ---");
+        foreach (var ders in dersler)
+        {
+            ders.DersBilgisiGöster();
+        }
+    }
+
+    private static void ÖğrencileriListele()
+    {
+        Console.WriteLine("\n--- ÖĞRENCİLER ---");
+        foreach (var öğrenci in öğrenciler)
+        {
+            öğrenci.BilgiGöster();
+        }
+    }
+
+    private static void ÖğretimGörevlileriniListele()
+    {
+        Console.WriteLine("\n--- ÖĞRETİM GÖREVLİLERİ ---");
+        foreach (var öğretimGörevlisi in öğretimGörevlileri)
+        {
+            öğretimGörevlisi.BilgiGöster();
+        }
+    }
+
+    private static void DersleriListele()
+    {
+        Console.WriteLine("\n--- DERSLER ---");
+        foreach (var ders in dersler)
+        {
+            ders.DersBilgisiGöster();
+        }
+    }
+
+    private static void DerseÖğrenciKaydet()
+    {
+        Console.Write("Öğrenci Adı: ");
+        string öğrenciAdı = Console.ReadLine();
+        var öğrenci = öğrenciler.Find(o => o.Ad == öğrenciAdı);
+        if (öğrenci != null)
+        {
+            Console.Write("Ders Adı: ");
+            string dersAdı = Console.ReadLine();
+            var ders = dersler.Find(d => d.Ad == dersAdı);
+            if (ders != null)
+            {
+                ders.ÖğrenciKaydet(öğrenci);
+                VeriYönetimi.DersKaydet(dersler);
+                Console.WriteLine("Öğrenci derse başarıyla kaydedildi.");
+            }
+            else
+            {
+                Console.WriteLine("Ders bulunamadı.");
+            }
+        }
+        else
+        {
+            Console.WriteLine("Öğrenci bulunamadı.");
+        }
+    }
+}
